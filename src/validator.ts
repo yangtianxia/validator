@@ -165,7 +165,7 @@ export class Validator<Trigger,	Message> {
 				return new Promise((resolve, reject) => {
 					// 忽略不是必须项且不是有效值
 					// 忽略值为false
-					if ((isNil(rule.required) && !isValidString($$$value)) || $$$value === false) {
+					if ((isNil(rule.required) && !isValidString($$$value)) || value === false) {
 						resolve(true)
 					} else {
 						if (
