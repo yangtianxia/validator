@@ -1,6 +1,6 @@
 {
   "name": "@txjs/validator",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "数据验证",
   "main": "./dist/index.cjs.js",
   "module": "./dist/index.esm.mjs",
@@ -41,6 +41,7 @@
   "homepage": "https://github.com/yangtianxia/validator#readme",
   "dependencies": {
     "@txjs/bool": "^0.0.6",
+    "@txjs/merge-properties": "^0.0.1-alpha-0",
     "@txjs/shared": "^0.0.9"
   },
   "devDependencies": {
