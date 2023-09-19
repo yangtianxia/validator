@@ -1,5 +1,5 @@
+import { mergeProperties } from '@txjs/merge-properties'
 import { Validator, type ValidatorRules, type BaseTrigger } from './validator'
-import { extend } from './shared/extend'
 
 const instance = new Validator<BaseTrigger, string>()
 
@@ -8,7 +8,7 @@ const validator = Object.assign(
 	instance
 )
 
-extend(validator, instance, Validator.prototype)
+mergeProperties(validator, instance, Validator.prototype)
 
 export type {
 	ValidatorConfigObject,
@@ -24,7 +24,6 @@ export type {
 } from './validator'
 
 export * from './shared/formatTpl'
-export * from './shared/extend'
 
 export { validator }
 export default Validator
