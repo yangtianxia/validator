@@ -1,4 +1,3 @@
-import { mergeProperties } from '@txjs/merge-properties'
 import { Validator, type ValidatorRules, type BaseTrigger } from './validator'
 
 const instance = new Validator<BaseTrigger, string>()
@@ -8,7 +7,7 @@ const validator = Object.assign(
 	instance
 )
 
-mergeProperties(validator, instance, Validator.prototype)
+Object.setPrototypeOf(validator, Object.getPrototypeOf(instance))
 
 export type {
 	ValidatorConfigObject,
