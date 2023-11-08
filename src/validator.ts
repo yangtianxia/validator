@@ -115,7 +115,7 @@ export type ValidatorRule<Trigger, Message> = {
 
 export class Validator<Trigger,	Message> {
 	private defaults: ValidatorConfigObject<Trigger> = _defaults as any
-	$trigger: Trigger = 'blur' as any
+	#trigger = 'blur' as Trigger
 
   constructor (config?: ValidatorConfigObject<Trigger>) {
 		if (notNil(config)) {
@@ -131,6 +131,10 @@ export class Validator<Trigger,	Message> {
 			rules[key] = this.generate(key, options[key])
 		}
 		return rules
+	}
+
+	setTrigger(value: Trigger) {
+		this.#trigger = value
 	}
 
 	trigger(values: any): Trigger {
@@ -252,7 +256,7 @@ export class Validator<Trigger,	Message> {
 			// 当前规则配置
 			const ruleOption = $$rule[name as keyof typeof $$rule]!
 			// 触发事件
-			let $$$trigger = rule.trigger ?? plan.trigger ?? this.$trigger
+			let $$$trigger = rule.trigger ?? plan.trigger ?? this.#trigger
 			// 规则值
 			let $$$value = ruleOption
 			// 消息类型
@@ -321,7 +325,7 @@ export class Validator<Trigger,	Message> {
 					throw new Error(`"${fieldKey}" 自定义验证 "[${i}]validator" 必须是function`)
 				}
 
-				const $$$trigger = trigger || this.$trigger
+				const $$$trigger = trigger || this.#trigger
 
 				$$rules.push(
 					this.tranformCustom(`${fieldKey}-custom-${i}`, validator, {
