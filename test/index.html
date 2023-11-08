@@ -9,15 +9,21 @@
   <script type="module">
     import { validator } from './../dist/index.test.mjs'
 
+    validator.add('name', {
+      tpl: '',
+      preset () {}
+    })
+
     const rules = validator({
       name: {
         required: true,
         minlength: 2,
-        maxlength: 8
+        maxlength: 8,
+        name: true
       }
     })
 
-    console.dir(Object.keys(validator.defaults))
+    console.dir(validator)
     console.log(rules)
   </script>
 </body>
