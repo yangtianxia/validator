@@ -1,6 +1,6 @@
 import _defaults from './defaults'
 import { omit } from '@txjs/shared'
-import { notNil, isPlainObject, isNil, isValidString, isFunction, isArray } from '@txjs/bool'
+import { notNil, isPlainObject, isNil, isValidString, isFunction, isArray, isPromise } from '@txjs/bool'
 import { formatTpl } from './shared/formatTpl'
 
 type TriggerText = 'change' | 'blur'
@@ -14,31 +14,31 @@ interface Tpl extends Record<string, string> {
 }
 
 /** 基础验证配置 */
-interface BaseValidatorConfig<Trigger> {
+interface BaseValidatorConfig<T> {
 	/** 注入内容值 */
 	inject?: boolean
 	/** 触发事件 */
-	trigger?: Trigger
+	trigger?: T
 	/** 预设方法 */
 	preset: BaseValidatorFunc | BaseValidatorFunc[]
 	/** 提示文案 */
 	tpl: string | Tpl
 }
 
-export interface ValidatorConfig<Trigger> extends BaseValidatorConfig<Trigger> {
+export interface ValidatorConfig<T> extends BaseValidatorConfig<T> {
 	/** 替换定义 */
 	replace?: boolean
 }
 
 /** 自定义函数 */
 export interface CustomValidatorFunction {
-	(value: any, rule: any): Promise<boolean>
+	(value: any, rule: any): Promise<void> | void
 }
 
 /** 自定义方法配置规则 */
-interface CustomValidatorRule<Trigger> {
-	trigger?: Trigger
-	validator: CustomValidatorFunction
+interface CustomValidatorRule<T, F> {
+	trigger?: T
+	validator: F
 }
 
 export type BaseTrigger = TriggerText | TriggerText[]
@@ -56,7 +56,7 @@ export interface RuleType<
 }
 
 /** 内置规则 */
-export type DefaultsValidatorRules<Trigger> =
+export type DefaultsValidatorRules<T> =
 	& Record<
 		| 'number'
 		| 'digits'
@@ -65,23 +65,23 @@ export type DefaultsValidatorRules<Trigger> =
 		| 'landline'
 		| 'url'
 		| 'xss',
-		boolean | RuleType<boolean, 'default', Trigger>
+		boolean | RuleType<boolean, 'default', T>
 	>
 	& Record<
 		| 'minlength'
 		| 'maxlength'
 		| 'min'
 		| 'max',
-		number | RuleType<number, 'default', Trigger>
+		number | RuleType<number, 'default', T>
 	>
 	& Record<
 		| 'range'
 		| 'rangelength',
-		number[] | RuleType<number[], 'default', Trigger>
+		number[] | RuleType<number[], 'default', T>
 	>
 	& {
-		required: boolean | RuleType<boolean, 'select' | 'array' | 'default', Trigger>
-		contains: any[] | RuleType<any[], 'default', Trigger>
+		required: boolean | RuleType<boolean, 'select' | 'array' | 'default', T>
+		contains: any[] | RuleType<any[], 'default', T>
 	}
 
 /** 暴露自定义规则 */
@@ -89,35 +89,53 @@ export declare interface CustomValidatorRules {
 	[key: string]: any
 }
 
-export type Rule<Trigger> =
+export type RuleDataType =
+	| 'string'
+	| 'number'
+	| 'boolean'
+	| 'method'
+	| 'regexp'
+	| 'integer'
+	| 'float'
+	| 'object'
+	| 'enum'
+	| 'date'
+	| 'url'
+	| 'hex'
+	| 'email'
+
+export type Rule<T, F> =
 	& CustomValidatorRules
-	& Partial<DefaultsValidatorRules<Trigger>>
+	& Partial<DefaultsValidatorRules<T>>
 	& {
+		/** 字段类型 */
+		type?: RuleDataType
 		/** 表单 label */
 		label?: string
 		/** 触发事件 */
-		trigger?: Trigger
+		trigger?: T
 		/** 自定义规则 */
-		custom?: CustomValidatorRule<Trigger>[]
+		custom?: CustomValidatorRule<T, F>[]
 	}
 
 /** 验证配置 */
-export type ValidatorConfigObject<Trigger> = Record<string, ValidatorConfig<Trigger>>
+export type ValidatorConfigObject<T> = Record<string, ValidatorConfig<T>>
 
-export type ValidatorRules<Trigger> = Record<string, Rule<Trigger>>
+export type ValidatorRules<T, F> = Record<string, Rule<T, F>>
 
-export type ValidatorRule<Trigger, Message> = {
-	trigger?: Trigger
+export type ValidatorRule<T, F, M> = {
+	type?: RuleDataType
+	trigger?: T
 	ruleName?: string
-	message?: Message
-	validator: CustomValidatorFunction
+	message?: M
+	validator: F
 }
 
-export class Validator<Trigger,	Message> {
-	private defaults: ValidatorConfigObject<Trigger> = _defaults as any
-	#trigger = 'blur' as Trigger
+export class Validator<T extends BaseTrigger, F extends CustomValidatorFunction, M> {
+	private defaults: ValidatorConfigObject<T> = _defaults as any
+	#trigger = 'blur' as T
 
-  constructor (config?: ValidatorConfigObject<Trigger>) {
+  constructor (config?: ValidatorConfigObject<T>) {
 		if (notNil(config)) {
 			for (const name in config) {
 				this.add(name, config[name])
@@ -125,19 +143,19 @@ export class Validator<Trigger,	Message> {
 		}
 	}
 
-	init(options: ValidatorRules<Trigger>) {
-		const rules = {} as Record<string, ValidatorRule<Trigger, Message>[]>
+	init(options: ValidatorRules<T, F>) {
+		const rules = {} as Record<string, ValidatorRule<T, F, M>[]>
 		for (const key in options) {
 			rules[key] = this.generate(key, options[key])
 		}
 		return rules
 	}
 
-	setTrigger(value: Trigger) {
+	setTrigger(value: T) {
 		this.#trigger = value
 	}
 
-	trigger(values: any): Trigger {
+	trigger(values: any): T {
 		return values
 	}
 
@@ -145,32 +163,35 @@ export class Validator<Trigger,	Message> {
 		ruleName: string,
 		{
 			value,
+			type,
 			label,
 			trigger,
 			rule,
 			tpl
 		}: {
 			value: any,
+			type?: RuleDataType
 			label?: string
-			trigger: Trigger,
-			rule: Omit<Rule<Trigger>, 'label' | 'trigger' | 'custom'>,
+			trigger: T,
+			rule: Omit<Rule<T, F>, 'type' | 'label' | 'trigger' | 'custom'>,
 			tpl: {
 				type: string
 				value?: string
 			}
 		},
-		plan: ValidatorConfig<Trigger>
-	): ValidatorRule<Trigger, Message> {
+		plan: ValidatorConfig<T>
+	): ValidatorRule<T, F, M> {
 		trigger = this.trigger(trigger)
 		return {
+			type,
 			ruleName,
 			trigger,
-			validator: (_, $$$value) => {
-				return new Promise((resolve, reject) => {
+			validator: ((_: any, $$$value: unknown) => {
+				return new Promise<void>((resolve, reject) => {
 					// 忽略不是必须项且不是有效值
 					// 忽略值为false
 					if ((isNil(rule.required) && !isValidString($$$value)) || value === false) {
-						resolve(true)
+						resolve()
 					} else {
 						if (
 							(isFunction(plan.preset) && !plan.preset($$$value, value, tpl.type)) ||
@@ -186,60 +207,70 @@ export class Validator<Trigger,	Message> {
 								)
 							)
 						} else {
-							resolve(true)
+							resolve()
 						}
 					}
 				})
-			}
+			}) as unknown as F
 		}
 	}
 
 	tranformCustom(
 		ruleName: string,
-		validator: CustomValidatorFunction,
+		validator: F,
 		{
+			type,
 			label,
 			trigger,
 			rule
 		}: {
+			type?: RuleDataType
 			label?: string
-			trigger: Trigger,
-			rule: Omit<Rule<Trigger>, 'label' | 'trigger' | 'custom'>
+			trigger: T,
+			rule: Omit<Rule<T, F>, 'type' | 'label' | 'trigger' | 'custom'>
 		}
-	): ValidatorRule<Trigger, Message> {
+	): ValidatorRule<T, F, M> {
 		trigger = this.trigger(trigger)
 		return {
+			type,
 			ruleName,
 			trigger,
-			validator: (_, $$$value) => {
-				return new Promise((resolve, reject) => {
+			validator: ((_: any, $$$value: unknown) => {
+				return new Promise<void>((resolve, reject) => {
 					if (isNil(rule.required) && !isValidString($$$value)) {
-						resolve(true)
+						resolve()
 					} else {
-						validator(_, $$$value)
-							.then(resolve)
-							.catch((err) => {
-								reject(
-									new Error(
-										formatTpl(err.message, undefined, label)
+						const result = validator(_, $$$value)
+						if (isPromise(result)) {
+							result
+								.then(resolve)
+								.catch((err: Error) => {
+									reject(
+										new Error(
+											formatTpl(err.message, undefined, label)
+										)
 									)
-								)
-							})
+								})
+						} else {
+							resolve()
+						}
 					}
 				})
-			}
+			}) as unknown as F
 		}
 	}
 
-	private generate(fieldKey: string, rule: Rule<Trigger>) {
+	private generate(fieldKey: string, rule: Rule<T, F>) {
 		if (!isPlainObject(rule)) {
 			throw new Error(`"${fieldKey}" 必须是对象`)
 		}
 
-		const $$rules = [] as ValidatorRule<Trigger, Message>[]
+		const $$rules = [] as ValidatorRule<T, F, M>[]
 		const $$custom = rule.custom
+		const $$type = rule.type || 'string' as const
 		const $$label = rule.label
 		const $$rule = omit(rule, [
+			'type',
 			'label',
 			'trigger',
 			'custom'
@@ -271,7 +302,7 @@ export class Validator<Trigger,	Message> {
 					message,
 					value,
 					trigger
-				} = ruleOption as RuleType<any, string, Trigger>
+				} = ruleOption as RuleType<any, string, T>
 
 				// tpl 类型设置
 				if (notNil(type)) {
@@ -300,6 +331,7 @@ export class Validator<Trigger,	Message> {
 			$$rules.push(
 				this.transform(name, {
 					rule: $$rule,
+					type: $$type,
 					label: $$label,
 					value: $$$value,
 					trigger: $$$trigger,
@@ -329,6 +361,7 @@ export class Validator<Trigger,	Message> {
 
 				$$rules.push(
 					this.tranformCustom(`${fieldKey}-custom-${i}`, validator, {
+						type: $$type,
 						rule: $$rule,
 						label: $$label,
 						trigger: $$$trigger
@@ -342,7 +375,7 @@ export class Validator<Trigger,	Message> {
 
 	add(
 		name: string,
-		config: ValidatorConfig<Trigger>
+		config: ValidatorConfig<T>
 	) {
 		if (!config.replace && name in this.defaults) {
 			console.warn(`"${name}" 方法已存在，可以添加属性 "replace" 的值为 "true" 来替换`)
