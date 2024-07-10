@@ -1,9 +1,9 @@
-import { Validator, type ValidatorRules, type BaseTrigger } from './validator'
+import { Validator, type CustomValidatorFunction, type ValidatorRules, type BaseTrigger } from './validator'
 
-const instance = new Validator<BaseTrigger, string>()
+const instance = new Validator<BaseTrigger, CustomValidatorFunction, string>()
 
 const validator = Object.assign(
-	(options: ValidatorRules<BaseTrigger>) => instance.init(options),
+	(options: ValidatorRules<BaseTrigger, CustomValidatorFunction>) => instance.init(options),
 	instance
 )
 
