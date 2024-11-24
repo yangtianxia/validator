@@ -4,27 +4,73 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
+  <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/ant-design-vue@4.2.6/dist/reset.css">
+  <script src="https://fastly.jsdelivr.net/npm/vue@3"></script>
+  <script src="https://unpkg.com/dayjs/dayjs.min.js"></script>
+  <script src="https://unpkg.com/dayjs/plugin/customParseFormat.js"></script>
+  <script src="https://unpkg.com/dayjs/plugin/weekday.js"></script>
+  <script src="https://unpkg.com/dayjs/plugin/localeData.js"></script>
+  <script src="https://unpkg.com/dayjs/plugin/weekOfYear.js"></script>
+  <script src="https://unpkg.com/dayjs/plugin/weekYear.js"></script>
+  <script src="https://unpkg.com/dayjs/plugin/advancedFormat.js"></script>
+  <script src="https://unpkg.com/dayjs/plugin/quarterOfYear.js"></script>
+  <script src="https://fastly.jsdelivr.net/npm/ant-design-vue@4.2.6/dist/antd.js"></script>
+  <style>
+    .wrapper {
+      padding: 16px;
+      max-width: 720px;
+      margin: 24px auto 0;
+    }
+  </style>
 </head>
 <body>
+  <div id="app"></div>
   <script type="module">
     import { validator } from './../dist/index.test.mjs'
 
-    validator.add('name', {
-      tpl: '',
-      preset () {}
+    validator.add('named', {
+      preset: function(value) {
+        return /\d+/g.test(value)
+      },
+      tpl: '[0] 不符合要求'
     })
 
     const rules = validator({
       name: {
-        required: true,
+        label: '用户名',
+        // required: true,
+        named: true,
         minlength: 2,
-        maxlength: 8,
-        name: true
+        maxlength: 8
       }
     })
 
-    console.dir(validator)
     console.log(rules)
+
+    const app = Vue.createApp({
+      data() {
+        return {
+          model: {
+            name: undefined
+          },
+          rules
+        }
+      },
+      template: `
+      <section class="wrapper">
+        <a-form scrollToFirstError :model="model" :rules="rules" :labelCol="{span: 6}" :wrapperCol="{span: 12}">
+          <a-form-item validateFirst label="姓名" name="name">
+            <a-input v-model:value="model.name" />
+          </a-form-item>
+          <a-form-item :wrapperCol="{offset: 6}">
+            <a-button type="primary" nativeType="submit">提交</a-button>
+          </a-form-item>
+        </a-form>
+      </section>`
+    })
+
+    app.use(antd)
+    app.mount('#app')
   </script>
 </body>
 </html>
