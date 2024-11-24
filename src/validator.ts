@@ -121,7 +121,7 @@ export type Rule<T, F> =
 /** 验证配置 */
 export type ValidatorConfigObject<T> = Record<string, ValidatorConfig<T>>
 
-export type ValidatorRules<T, F> = Record<string, Rule<T, F>>
+export type ValidatorRules<U, T, F> = Partial<Record<keyof U, Rule<T, F>>>
 
 export type ValidatorRule<T, F, M> = {
 	type?: RuleDataType
@@ -143,10 +143,10 @@ export class Validator<T extends BaseTrigger, F extends CustomValidatorFunction,
 		}
 	}
 
-	init(options: ValidatorRules<T, F>) {
+	init<U>(options: ValidatorRules<U, T, F>) {
 		const rules = {} as Record<string, ValidatorRule<T, F, M>[]>
 		for (const key in options) {
-			rules[key] = this.generate(key, options[key])
+			rules[key] = this.generate(key, options[key]!)
 		}
 		return rules
 	}
@@ -172,8 +172,8 @@ export class Validator<T extends BaseTrigger, F extends CustomValidatorFunction,
 			value: any,
 			type?: RuleDataType
 			label?: string
-			trigger: T,
-			rule: Omit<Rule<T, F>, 'type' | 'label' | 'trigger' | 'custom'>,
+			trigger: T
+			rule: Omit<Rule<T, F>, 'type' | 'label' | 'trigger' | 'custom'>
 			tpl: {
 				type: string
 				value?: string
@@ -282,7 +282,7 @@ export class Validator<T extends BaseTrigger, F extends CustomValidatorFunction,
 				continue
 			}
 
-			const plan = this.defaults[name]
+			const plan = {...this.defaults[name]}
 
 			// 当前规则配置
 			const ruleOption = $$rule[name as keyof typeof $$rule]!
