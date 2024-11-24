@@ -3,7 +3,7 @@ import { Validator, type CustomValidatorFunction, type ValidatorRules, type Base
 const instance = new Validator<BaseTrigger, CustomValidatorFunction, string>()
 
 const validator = Object.assign(
-	(options: ValidatorRules<BaseTrigger, CustomValidatorFunction>) => instance.init(options),
+	<T>(options: ValidatorRules<T, BaseTrigger, CustomValidatorFunction>) => instance.init(options),
 	instance
 )
 
