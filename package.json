@@ -1,6 +1,6 @@
 {
   "name": "@txjs/validator",
-  "version": "0.0.10",
+  "version": "0.1.0",
   "description": "数据验证",
   "main": "./dist/index.cjs.js",
   "module": "./dist/index.esm.mjs",
@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "lint": "eslint src",
-    "build": "node build.js",
+    "build": "npm run lint && node build.js",
     "dev": "node build.js --watch",
     "dev:test": "node build.js --watch --test"
   },
@@ -39,8 +39,8 @@
   },
   "homepage": "https://github.com/yangtianxia/validator#readme",
   "dependencies": {
-    "@txjs/bool": "^0.0.8",
-    "@txjs/shared": "^0.0.14"
+    "@txjs/bool": "^1.0.0",
+    "@txjs/shared": "^1.0.0"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^21.1.0",
