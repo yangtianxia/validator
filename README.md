@@ -1,5 +1,7 @@
 # @txjs/validator
 
+这个版本已经归档，新版[🔗@txjs/validator](https://github.com/yangtianxia/txjs/tree/master/packages/validator)
+
 > 安装方法默认npm
 
 ## 安装
